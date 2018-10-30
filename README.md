@@ -9,8 +9,8 @@
         _infinitScroll.backgroundColor = [UIColor colorWithWhite:0.95 alpha:1];
         [self.view addSubview:_infinitScroll];
         _infinitScroll.jzDataSource = self;
-        _infinitScroll.infinite = YES;
-        _infinitScroll.timeInterval = 2;
+        _infinitScroll.infinite = YES; //是否开启无限轮播
+        _infinitScroll.timeInterval = 2; //不设置则不开启轮播计时器
     }
     return _infinitScroll;
 }
