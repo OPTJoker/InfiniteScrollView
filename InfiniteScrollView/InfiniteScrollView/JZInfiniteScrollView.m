@@ -9,6 +9,8 @@
 #import "JZInfiniteScrollView.h"
 #import "JZInfiniteItemCell.h"
 #import "JZInfiniteCustomCellProtocol.h"
+@class JZCustomBannerCell;
+
 
 NSString * const KJZInfiniteCellIDE = @"JZInfiniteCellIDE";
 NSString * const KJZInfiniteCustomCellIDE = @"KJZInfiniteCustomCellIDE";
@@ -77,21 +79,23 @@ UICollectionViewDelegateFlowLayout
     
     if (self) {
         self.delegate = self;
-        self.dataSource = self;        
+        self.dataSource = self;
         KScreenW = [UIScreen mainScreen].bounds.size.width;
         KScreenH = [UIScreen mainScreen].bounds.size.height;
         self.backgroundColor = [UIColor whiteColor];
+        self.showsHorizontalScrollIndicator = NO;
+        self.showsVerticalScrollIndicator = NO;
         [self registerClass:[JZInfiniteItemCell class] forCellWithReuseIdentifier:KJZInfiniteCellIDE];
-    
+        
     }
     return self;
 }
 
-- (void)setJzDataSource:(id<JZInfiniteScrollViewDataSource>)jzDataSource{
-    _jzDataSource = jzDataSource;
-    if ([_jzDataSource respondsToSelector:@selector(itemClassForInfiniteScrollView:)]) {
+- (void)setJzInfiniteDataSource:(id<JZInfiniteScrollViewDataSource>)jzInfiniteDataSource{
+    _jzInfiniteDataSource = jzInfiniteDataSource;
+    if ([_jzInfiniteDataSource respondsToSelector:@selector(itemClassForInfiniteScrollView:)]) {
         // cell注册
-        Class cls = [_jzDataSource itemClassForInfiniteScrollView:self];
+        Class cls = [_jzInfiniteDataSource itemClassForInfiniteScrollView:self];
         if (cls) {
             self.customItemClass = cls;
             [self registerClass:cls forCellWithReuseIdentifier:KJZInfiniteCustomCellIDE];
@@ -108,7 +112,7 @@ UICollectionViewDelegateFlowLayout
 #pragma mark - LayoutSubView
 - (void)layoutSubviews{
     [super layoutSubviews];
-    if (!self.isInfinite) {
+    if (!self.infinite) {
         // 初始化一些设置
         CGFloat hor_spc = (self.bounds.size.width - itemSize.width)/2.0;
         CGFloat ver_spc = (self.bounds.size.height - itemSize.height)/2.0;
@@ -131,12 +135,27 @@ UICollectionViewDelegateFlowLayout
 
 
 #pragma mark
+#pragma mark - 代理
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
+{
+    if ([self.jzInfiniteDataSource respondsToSelector:@selector(infinitView:didSelectItemAtIndex:)]) {
+        NSInteger n = 0;
+        if ([self.jzInfiniteDataSource respondsToSelector:@selector(cellDatasForInfiniteScrollView:)]) {
+            n = [self.jzInfiniteDataSource cellDatasForInfiniteScrollView:self].count;
+        }else if([self.jzInfiniteDataSource respondsToSelector:@selector(imagesForInfiniteScrollView:)]){
+            n = [self.jzInfiniteDataSource imagesForInfiniteScrollView:self].count;
+        }
+        [self.jzInfiniteDataSource infinitView:self didSelectItemAtIndex:[self Amode:indexPath.item B:n]];
+    }
+}
+
+#pragma mark
 #pragma mark - collection数据源 【size相关】
 
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    if ([self.jzDataSource respondsToSelector:@selector(sizeOfItemForInfiniteScrollView:)]) {
-        itemSize = [self.jzDataSource sizeOfItemForInfiniteScrollView:self];
+    if ([self.jzInfiniteDataSource respondsToSelector:@selector(sizeOfItemForInfiniteScrollView:)]) {
+        itemSize = [self.jzInfiniteDataSource sizeOfItemForInfiniteScrollView:self];
         return itemSize;
     }else{
         itemSize = CGSizeZero;
@@ -150,8 +169,8 @@ UICollectionViewDelegateFlowLayout
 
 - (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section
 {
-    if ([self.jzDataSource respondsToSelector:@selector(minimItemSpacingForInfiniteScrollView:)]) {
-        itemSpace = [self.jzDataSource minimItemSpacingForInfiniteScrollView:self];
+    if ([self.jzInfiniteDataSource respondsToSelector:@selector(minimItemSpacingForInfiniteScrollView:)]) {
+        itemSpace = [self.jzInfiniteDataSource minimItemSpacingForInfiniteScrollView:self];
         return itemSpace;
     }else{
         itemSpace = 0;
@@ -166,21 +185,16 @@ UICollectionViewDelegateFlowLayout
 
 - (NSInteger)collectionView:(nonnull UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
-    if ([self.jzDataSource respondsToSelector:@selector(imagesForInfiniteScrollView:)]) {
-        self.imgsArr = [self.jzDataSource imagesForInfiniteScrollView:self];
+    if ([self.jzInfiniteDataSource respondsToSelector:@selector(imagesForInfiniteScrollView:)]) {
+        self.imgsArr = [self.jzInfiniteDataSource imagesForInfiniteScrollView:self];
     }
-    if ([self.jzDataSource respondsToSelector:@selector(cellDatasForInfiniteScrollView:)]) {
-        self.datas = [self.jzDataSource cellDatasForInfiniteScrollView:self];
+    if ([self.jzInfiniteDataSource respondsToSelector:@selector(cellDatasForInfiniteScrollView:)]) {
+        self.datas = [self.jzInfiniteDataSource cellDatasForInfiniteScrollView:self];
     }
     
-    if ([self.jzDataSource respondsToSelector:@selector(numberOfItemsForInfiniteScrollView:)]) {
-        self.itemCount = [self.jzDataSource numberOfItemsForInfiniteScrollView:self];
-        if ([self.jzDataSource numberOfItemsForInfiniteScrollView:self]>1) {
-            return self.itemCount*(self.infinite?3:1);
-        }else{
-            return self.itemCount;
-        }
-        
+    if ([self.jzInfiniteDataSource respondsToSelector:@selector(numberOfItemsForInfiniteScrollView:)]) {
+        self.itemCount = [self.jzInfiniteDataSource numberOfItemsForInfiniteScrollView:self];
+        return self.itemCount*(self.infinite?3:1);
     }else{
         self.itemCount = 0;
         return 0;
@@ -189,12 +203,14 @@ UICollectionViewDelegateFlowLayout
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (self.customItemClass) {
+    if (self.customItemClass &&
+        (![NSStringFromClass(self.customItemClass) isEqualToString:@"JZCustomBannerCell"])
+        ){
         UICollectionViewCell<JZInfiniteCustomCellProtocol>*cusCell = [self dequeueReusableCellWithReuseIdentifier:KJZInfiniteCustomCellIDE forIndexPath:indexPath];
-        if ([self.jzDataSource respondsToSelector:@selector(cellDatasForInfiniteScrollView:)]) {
+        if ([self.jzInfiniteDataSource respondsToSelector:@selector(cellDatasForInfiniteScrollView:)]) {
             if (self.datas.count > indexPath.item%self.itemCount) {
                 id data = [self.datas objectAtIndex:indexPath.item%self.itemCount];
-                NSLog(@"cus Data:%@", data);
+                //NSLog(@"cus Data:%@", data);
                 [cusCell setupCellWithData:data atIndexPath:indexPath];
             }
         }
@@ -202,13 +218,12 @@ UICollectionViewDelegateFlowLayout
         return cusCell;
     }else{
         JZInfiniteItemCell *cell = [self dequeueReusableCellWithReuseIdentifier:KJZInfiniteCellIDE forIndexPath:indexPath];
-        
-        if ([self.jzDataSource respondsToSelector:@selector(imagesForInfiniteScrollView:)]) {
+        if ([self.jzInfiniteDataSource respondsToSelector:@selector(imagesForInfiniteScrollView:)]) {
             // 模运算取正确的值
             if (self.itemCount > 0) {
                 // 放心取值操作
                 if (self.imgsArr.count>indexPath.item%self.itemCount) {
-                    [cell setImage:[self.imgsArr objectAtIndex:indexPath.item%self.itemCount]];
+                    [cell setImage:[self.imgsArr objectAtIndex:indexPath.item%self.itemCount] placeholderImg:self.placeholderImg];
                 }
             }
         }
@@ -234,6 +249,10 @@ UICollectionViewDelegateFlowLayout
         scrollDirection = KScrollDirection_Left;
     }
     historyX = scrollView.contentOffset.x;
+    
+    if ([self.jzInfiniteDelegate respondsToSelector:@selector(scrollViewDidScroll:)]) {
+        [self.jzInfiniteDelegate scrollViewDidScroll:self];
+    }
 }
 
 - (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
@@ -248,26 +267,42 @@ UICollectionViewDelegateFlowLayout
     }else{
         [self scrollItemByOffX];
     }
+    if ([self.jzInfiniteDelegate respondsToSelector:@selector(scrollViewDidEndDragging:willDecelerate:)]) {
+        [self.jzInfiniteDelegate scrollViewDidEndDragging:self willDecelerate:decelerate];
+    }
 }
 
 // 开始v拖拽
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView{
     needScrollItem = YES;
     [self pauseTimer];
+    
+    if ([self.jzInfiniteDelegate respondsToSelector:@selector(scrollViewWillBeginDragging:)]) {
+        [self.jzInfiniteDelegate scrollViewWillBeginDragging:self];
+    }
 }
 
 - (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView{
+    self. currentIndex = self->curIndex%self.itemCount;
     //滚动完之后回滚到中间位置
-    if (self.isInfinite) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (self->curIndex<self.itemCount || self->curIndex > self.itemCount*2-1) {
-                NSInteger temp = (self->curIndex+self.itemCount)%self.itemCount;
-                self->curIndex = temp+self.itemCount;
-                NSIndexPath *idxPath = [NSIndexPath indexPathForItem:self->curIndex inSection:0];
-                
+    if (self.infinite) {
+        
+        if (self->curIndex<self.itemCount || self->curIndex > self.itemCount*2-1) {
+            NSInteger temp = (self->curIndex+self.itemCount)%self.itemCount;
+            self->curIndex = temp+self.itemCount;
+            NSIndexPath *idxPath = [NSIndexPath indexPathForItem:self->curIndex inSection:0];
+            dispatch_async(dispatch_get_main_queue(), ^{
                 [self scrollToItemAtIndexPath:idxPath atScrollPosition:UICollectionViewScrollPositionCenteredHorizontally animated:NO];
-            }
-        });
+            });
+        }
+        
+    }
+    
+    if ([self.jzInfiniteDelegate respondsToSelector:@selector(scrollViewDidEndScrollingAnimation:)]) {
+        [self.jzInfiniteDelegate scrollViewDidEndScrollingAnimation:self];
+    }
+    if ([self.jzInfiniteDelegate respondsToSelector:@selector(scrollViewDidEndScrollingAnimationAtIndex:)]) {
+        [self.jzInfiniteDelegate scrollViewDidEndScrollingAnimationAtIndex:self.currentIndex];
     }
 }
 
@@ -306,7 +341,7 @@ UICollectionViewDelegateFlowLayout
         if ([self isValidIdx:temp]) {
             curIndex = temp;
             [self scrollItemAtIdxToCenter:curIndex];
-        }        
+        }
         needScrollItem = NO;
     }
     
@@ -346,7 +381,7 @@ UICollectionViewDelegateFlowLayout
         if (self.itemCount>0) {
             
             NSInteger startIdx = 0;
-            if (self.isInfinite) {
+            if (self.infinite) {
                 NSInteger offIdx = self.itemCount;
                 // midIndex是中间元素
                 //NSInteger midIndex = (self.itemCount+1)/2+offIdx-1;
@@ -397,4 +432,16 @@ UICollectionViewDelegateFlowLayout
     [self.timer invalidate];
     self.timer = nil;
 }
+
+- (void)removeFromSuperview{
+    [self stopTimer];
+    [super removeFromSuperview];
+}
+
+- (void)dealloc
+{
+    // 估计这句永远调不到
+    [self stopTimer];
+}
+
 @end

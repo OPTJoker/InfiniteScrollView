@@ -8,12 +8,10 @@
 
 #import <UIKit/UIKit.h>
 
-NS_ASSUME_NONNULL_BEGIN
-
 @interface JZInfiniteItemCell : UICollectionViewCell
 
 - (void)setImage:(id)img;
+- (void)setImage:(id)img placeholderImg:(UIImage *)placeImg;
 
 @end
 
-NS_ASSUME_NONNULL_END

@@ -32,7 +32,7 @@
         _infinitScroll = [[JZInfiniteScrollView alloc] initWithFrame:CGRectMake(10, 60, 355, 160)];
         _infinitScroll.backgroundColor = [UIColor colorWithWhite:0.95 alpha:1];
         [self.view addSubview:_infinitScroll];
-        _infinitScroll.jzDataSource = self;
+        _infinitScroll.jzInfiniteDataSource = self;
         _infinitScroll.infinite = YES; //是否开启无限轮播
         _infinitScroll.timeInterval = 2; //不设置则不开启轮播计时器
     }
@@ -44,7 +44,7 @@
     if (nil == _infinitScrollMid) {
         _infinitScrollMid = [[JZInfiniteScrollView alloc] initWithFrame:CGRectMake(0, 160+60+50, 375, 120)];
         [self.view addSubview:_infinitScrollMid];
-        _infinitScrollMid.jzDataSource = self;
+        _infinitScrollMid.jzInfiniteDataSource = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             self->_infinitScrollMid.timeInterval = 2;
         });
@@ -58,7 +58,7 @@
     if (nil == _infinitScroll2) {
         _infinitScroll2 = [[JZInfiniteScrollView alloc] initWithFrame:CGRectMake(0, 160+60+50+120+50, 375, 240)];
         [self.view addSubview:_infinitScroll2];
-        _infinitScroll2.jzDataSource = self;
+        _infinitScroll2.jzInfiniteDataSource = self;
         //_infinitScroll2.timeInterval = 2;
         _infinitScroll2.infinite = YES;
     }
